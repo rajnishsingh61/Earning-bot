@@ -263,19 +263,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Show all active codes with inline keyboard buttons
         codes = get_active_redeem_codes()
         if codes:
-            message_text = "🎁 **Available Free Codes:**\n\n"
-            
             # Create inline keyboard with all free code links
             keyboard = []
             for code in codes:
                 code_id, code_text, coins, is_active, free_code_link, created_at = code
                 if free_code_link:
-                    keyboard.append([InlineKeyboardButton(f"🔑 {code_text} - {coins} coins", url=free_code_link)])
+                    keyboard.append([InlineKeyboardButton(f"🎁 Claim Your Code", url=free_code_link)])
             
             if keyboard:
                 reply_markup = InlineKeyboardMarkup(keyboard)
                 await update.message.reply_text(
-                    "📥 **Click below to get free codes:**",
+                    "📥 **Click below to claim your free code:**",
                     reply_markup=reply_markup
                 )
             else:
@@ -387,16 +385,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         else:
             if result == "already_used":
-                # Invalid code message with Add Code button
-                keyboard = [[InlineKeyboardButton("🔑 Add Code", callback_data="add_code_invalid")]]
+                # Invalid code message with GET FREE CODE button
+                keyboard = [[InlineKeyboardButton("📥 GET FREE CODE", callback_data="get_free_code_invalid")]]
                 reply_markup = InlineKeyboardMarkup(keyboard)
                 await update.message.reply_text(
                     "❌ You have already used this code!",
                     reply_markup=reply_markup
                 )
             else:
-                # Invalid code message with Add Code button
-                keyboard = [[InlineKeyboardButton("🔑 Add Code", callback_data="add_code_invalid")]]
+                # Invalid code message with GET FREE CODE button
+                keyboard = [[InlineKeyboardButton("📥 GET FREE CODE", callback_data="get_free_code_invalid")]]
                 reply_markup = InlineKeyboardMarkup(keyboard)
                 await update.message.reply_text(
                     "❌ Invalid code!",
@@ -473,10 +471,27 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Or: example@paytm"
         )
     
-    elif data == "add_code_invalid":
-        # When user clicks Add Code from invalid message
-        await query.message.reply_text("🔑 **Add Code**\n\nPlease enter your redeem code:")
-        context.user_data['awaiting_redeem_code'] = True
+    elif data == "get_free_code_invalid":
+        # When user clicks GET FREE CODE from invalid message
+        codes = get_active_redeem_codes()
+        if codes:
+            # Create inline keyboard with all free code links
+            keyboard = []
+            for code in codes:
+                code_id, code_text, coins, is_active, free_code_link, created_at = code
+                if free_code_link:
+                    keyboard.append([InlineKeyboardButton(f"🎁 Claim Your Code", url=free_code_link)])
+            
+            if keyboard:
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await query.message.reply_text(
+                    "📥 **Click below to claim your free code:**",
+                    reply_markup=reply_markup
+                )
+            else:
+                await query.message.reply_text("❌ No free codes available at the moment!")
+        else:
+            await query.message.reply_text("❌ No free codes available at the moment!")
 
 async def handle_withdraw_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
