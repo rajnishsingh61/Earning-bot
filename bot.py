@@ -12,7 +12,7 @@ logging.basicConfig(
 )
 
 # Bot configuration
-BOT_TOKEN = os.environ.get('BOT_TOKEN', '8234462578:AAGAHCuB1Ql9cptiM7RKQ75mcPX1VsMt7o4')
+BOT_TOKEN = os.environ.get('BOT_TOKEN', '8090704591:AAEDHjDQaHquW7d6PuU667Kgsn6nYiDQDUY')
 ADMIN_IDS = [int(id.strip()) for id in os.environ.get('ADMIN_IDS', '7013309955').split(',')]
 REFER_BONUS = 15
 MIN_WITHDRAWAL = 200
@@ -137,6 +137,14 @@ def get_all_redeem_codes():
     conn.close()
     return codes
 
+def get_active_redeem_codes():
+    conn = sqlite3.connect('bot.db', check_same_thread=False)
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM redeem_codes WHERE is_active = 1 ORDER BY created_at DESC')
+    codes = cursor.fetchall()
+    conn.close()
+    return codes
+
 def redeem_code(user_id, code):
     conn = sqlite3.connect('bot.db', check_same_thread=False)
     cursor = conn.cursor()
@@ -179,13 +187,14 @@ def get_main_keyboard(user_id):
     if user_id in ADMIN_IDS:
         keyboard = [
             ["🔑 Add Code", "💰 Balance"],
-            ["👥 Refer & Earn", "💸 Withdraw"],
-            ["📊 Admin Panel"]
+            ["📥 GET FREE CODE", "👥 Refer & Earn"],
+            ["💸 Withdraw", "📊 Admin Panel"]
         ]
     else:
         keyboard = [
             ["🔑 Add Code", "💰 Balance"],
-            ["👥 Refer & Earn", "💸 Withdraw"]
+            ["📥 GET FREE CODE", "👥 Refer & Earn"],
+            ["💸 Withdraw"]
         ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
@@ -249,6 +258,30 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if user:
             balance = user[3]
             await update.message.reply_text(f"💰 **Balance:** {balance} coins")
+        
+    elif text == "📥 GET FREE CODE":
+        # Show all active codes with inline keyboard buttons
+        codes = get_active_redeem_codes()
+        if codes:
+            message_text = "🎁 **Available Free Codes:**\n\n"
+            
+            # Create inline keyboard with all free code links
+            keyboard = []
+            for code in codes:
+                code_id, code_text, coins, is_active, free_code_link, created_at = code
+                if free_code_link:
+                    keyboard.append([InlineKeyboardButton(f"🔑 {code_text} - {coins} coins", url=free_code_link)])
+            
+            if keyboard:
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await update.message.reply_text(
+                    "📥 **Click below to get free codes:**",
+                    reply_markup=reply_markup
+                )
+            else:
+                await update.message.reply_text("❌ No free codes available at the moment!")
+        else:
+            await update.message.reply_text("❌ No free codes available at the moment!")
         
     elif text == "👥 Refer & Earn":
         bot_username = (await context.bot.get_me()).username
@@ -328,13 +361,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if user_id in ADMIN_IDS:
             codes = get_all_redeem_codes()
             if codes:
-                codes_text = "📋 **All Codes:**\n\n"
+                codes_text = "📋 **All Codes (Admin View):**\n\n"
                 for code in codes:
                     code_id, code_text, coins, is_active, free_code_link, created_at = code
+                    status = "✅ Active" if is_active else "❌ Inactive"
                     codes_text += f"🔑 {code_text} - {coins} coins\n"
-                    if free_code_link:
-                        codes_text += f"🔗 {free_code_link}\n"
-                    codes_text += "\n"
+                    codes_text += f"🔗 {free_code_link}\n"
+                    codes_text += f"📊 {status}\n\n"
                 await update.message.reply_text(codes_text, parse_mode='Markdown')
             else:
                 await update.message.reply_text("No codes found!")
@@ -348,31 +381,27 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if success:
             coins = result
-            # Get the redeem code details to show free code link
-            redeem_code_data = get_redeem_code_by_text(code)
-            if redeem_code_data and redeem_code_data[4]:  # free_code_link exists
-                free_code_link = redeem_code_data[4]
-                # Create inline keyboard for GET FREE CODE
-                keyboard = [
-                    [InlineKeyboardButton("📥 GET FREE CODE", url=free_code_link)]
-                ]
-                reply_markup = InlineKeyboardMarkup(keyboard)
-                
-                await update.message.reply_text(
-                    f"🎉 **Code Added Successfully!**\n\n💰 You earned **{coins} coins**!\n\nClick below to get more free codes:",
-                    reply_markup=reply_markup,
-                    parse_mode='Markdown'
-                )
-            else:
-                await update.message.reply_text(
-                    f"🎉 **Code Added Successfully!**\n\n💰 You earned **{coins} coins**!",
-                    parse_mode='Markdown'
-                )
+            await update.message.reply_text(
+                f"🎉 **Code Added Successfully!**\n\n💰 You earned **{coins} coins**!",
+                parse_mode='Markdown'
+            )
         else:
             if result == "already_used":
-                await update.message.reply_text("❌ You have already used this code!")
+                # Invalid code message with Add Code button
+                keyboard = [[InlineKeyboardButton("🔑 Add Code", callback_data="add_code_invalid")]]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await update.message.reply_text(
+                    "❌ You have already used this code!",
+                    reply_markup=reply_markup
+                )
             else:
-                await update.message.reply_text("❌ Invalid code!")
+                # Invalid code message with Add Code button
+                keyboard = [[InlineKeyboardButton("🔑 Add Code", callback_data="add_code_invalid")]]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await update.message.reply_text(
+                    "❌ Invalid code!",
+                    reply_markup=reply_markup
+                )
         
         context.user_data.pop('awaiting_redeem_code', None)
     
@@ -387,39 +416,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
                 code_id = add_redeem_code(code, coins, free_code_link)
                 if code_id:
-                    # Broadcast to all users with INLINE BUTTON
-                    users = get_all_users()
-                    message = (
-                        f"🎉 **New Free Code Available!** 🎉\n\n"
-                        f"🔑 **Code:** `{code}`\n"
-                        f"💰 **Reward:** {coins} coins\n\n"
-                        f"⚡ **Use this code in bot to get coins!**"
-                    )
-                    
-                    # Create inline keyboard button
-                    keyboard = [
-                        [InlineKeyboardButton("📥 GET FREE CODE", url=free_code_link)]
-                    ]
-                    reply_markup = InlineKeyboardMarkup(keyboard)
-                    
-                    success_count = 0
-                    for user in users:
-                        try:
-                            await context.bot.send_message(
-                                chat_id=user[0], 
-                                text=message,
-                                reply_markup=reply_markup,
-                                parse_mode='Markdown'
-                            )
-                            success_count += 1
-                            await asyncio.sleep(0.1)
-                        except Exception as e:
-                            print(f"Failed to send to user {user[0]}: {e}")
-                            continue
-                    
                     await update.message.reply_text(
                         f"✅ **Code Added Successfully!**\n\n"
-                        f"📢 Notified {success_count} users!\n"
+                        f"🔑 Code: {code}\n"
+                        f"💰 Coins: {coins}\n"
                         f"🔗 Link: {free_code_link}",
                         parse_mode='Markdown'
                     )
@@ -472,6 +472,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Example: 1234567890@ybl\n"
             f"Or: example@paytm"
         )
+    
+    elif data == "add_code_invalid":
+        # When user clicks Add Code from invalid message
+        await query.message.reply_text("🔑 **Add Code**\n\nPlease enter your redeem code:")
+        context.user_data['awaiting_redeem_code'] = True
 
 async def handle_withdraw_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
