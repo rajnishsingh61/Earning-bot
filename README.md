@@ -1,10 +1,8 @@
 # 🤖 Earning Bot - Telegram Coin Earning Bot
 
-A feature-rich Telegram bot for earning coins through redeem codes, referrals, and withdrawals.
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
 
-![Telegram Bot](https://img.shields.io/badge/Telegram-Bot-blue.svg)
-![Python](https://img.shields.io/badge/Python-3.7%2B-green.svg)
-![License](https://img.shields.io/badge/License-MIT-yellow.svg)
+A feature-rich Telegram bot for earning coins through redeem codes, referrals, and withdrawals.
 
 ## 🚀 Features
 
@@ -15,15 +13,24 @@ A feature-rich Telegram bot for earning coins through redeem codes, referrals, a
 - 📢 **Channel Verification** - Force users to join channels
 - 🌐 **Multi-language** - English & Hindi support
 - 🛠️ **Admin Panel** - Complete bot management
-- 📊 **Statistics** - User analytics and tracking
 
-## 🛠️ Installation
+## 🚀 Render Deployment
 
-### Prerequisites
-- Python 3.7+
-- Telegram Bot Token from [@BotFather](https://t.me/BotFather)
+1. **Click the "Deploy to Render" button above**
+2. **Set environment variables:**
+   - `BOT_TOKEN`: Your Telegram bot token from @BotFather
+   - `ADMIN_IDS`: Your Telegram user ID (get from @userinfobot)
+3. **Deploy** - Automatic deployment starts
 
-### 1. Clone Repository
+## 🛠️ Local Development
+
 ```bash
+# Clone repository
 git clone https://github.com/rajnishsingh61/Earning-bot.git
 cd Earning-bot
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run bot
+python bot.py
