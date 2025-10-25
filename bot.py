@@ -12,7 +12,7 @@ logging.basicConfig(
 )
 
 # Bot configuration
-BOT_TOKEN = os.environ.get('BOT_TOKEN', '8090704591:AAEDHjDQaHquW7d6PuU667Kgsn6nYiDQDUY')
+BOT_TOKEN = os.environ.get('BOT_TOKEN', '8234462578:AAE1cjdopd-1O6HZLT-DQhpstBEb-4Ixs34')
 ADMIN_IDS = [int(id.strip()) for id in os.environ.get('ADMIN_IDS', '7013309955').split(',')]
 REFER_BONUS = 15
 MIN_WITHDRAWAL = 200
