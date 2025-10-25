@@ -375,7 +375,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text("❌ Invalid code!")
         
         context.user_data.pop('awaiting_redeem_code', None)
-        await show_main_menu(update, context, user_id)
     
     elif 'awaiting_code' in context.user_data:
         text = update.message.text
@@ -394,7 +393,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         f"🎉 **New Free Code Available!** 🎉\n\n"
                         f"🔑 **Code:** `{code}`\n"
                         f"💰 **Reward:** {coins} coins\n\n"
-                        f"⚡ **Use code:** `{code}`"
+                        f"⚡ **Use this code in bot to get coins!**"
                     )
                     
                     # Create inline keyboard button
@@ -414,7 +413,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                             )
                             success_count += 1
                             await asyncio.sleep(0.1)
-                        except:
+                        except Exception as e:
+                            print(f"Failed to send to user {user[0]}: {e}")
                             continue
                     
                     await update.message.reply_text(
@@ -426,13 +426,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 else:
                     await update.message.reply_text("❌ Code already exists!")
             else:
-                await update.message.reply_text("❌ Invalid format!")
+                await update.message.reply_text("❌ Invalid format! Send:\nCODE\nCOINS\nLINK")
         
         except Exception as e:
             await update.message.reply_text(f"❌ Error: {str(e)}")
         
         context.user_data.pop('awaiting_code', None)
-        await show_main_menu(update, context, user_id)
     
     elif 'awaiting_broadcast' in context.user_data:
         message = update.message.text
@@ -456,7 +455,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
         context.user_data.pop('awaiting_broadcast', None)
-        await show_main_menu(update, context, user_id)
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -523,7 +521,6 @@ async def handle_withdraw_input(update: Update, context: ContextTypes.DEFAULT_TY
                 continue
         
         context.user_data.pop('withdraw_amount', None)
-        await show_main_menu(update, context, user_id)
 
 def main():
     init_db()
@@ -534,7 +531,7 @@ def main():
     application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     
-    print("🤖 Bot started successfully on Render!")
+    print("🤖 Bot started successfully!")
     print(f"📍 Minimum Withdrawal: {MIN_WITHDRAWAL} coins")
     print(f"💰 Refer Bonus: {REFER_BONUS} coins")
     print("🚀 Bot is running...")
