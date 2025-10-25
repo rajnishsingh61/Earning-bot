@@ -11,7 +11,7 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-# Bot configuration - Render environment variables
+# Bot configuration
 BOT_TOKEN = os.environ.get('BOT_TOKEN', '8090704591:AAEDHjDQaHquW7d6PuU667Kgsn6nYiDQDUY')
 ADMIN_IDS = [int(id.strip()) for id in os.environ.get('ADMIN_IDS', '7013309955').split(',')]
 REFER_BONUS = 15
