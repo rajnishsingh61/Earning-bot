@@ -12,7 +12,7 @@ logging.basicConfig(
 )
 
 # Bot configuration
-BOT_TOKEN = os.environ.get('BOT_TOKEN', '8234462578:AAFokOgGHDthqwnFcnrQBHlu6FhQnh0vThI')
+BOT_TOKEN = os.environ.get('BOT_TOKEN', '8090704591:AAEDHjDQaHquW7d6PuU667Kgsn6nYiDQDUY')
 ADMIN_IDS = [int(id.strip()) for id in os.environ.get('ADMIN_IDS', '7013309955').split(',')]
 REFER_BONUS = 15
 MIN_WITHDRAWAL = 200
@@ -117,6 +117,14 @@ def get_redeem_code(code):
     conn = sqlite3.connect('bot.db', check_same_thread=False)
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM redeem_codes WHERE code = ? AND is_active = 1', (code,))
+    redeem_code = cursor.fetchone()
+    conn.close()
+    return redeem_code
+
+def get_redeem_code_by_text(code_text):
+    conn = sqlite3.connect('bot.db', check_same_thread=False)
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM redeem_codes WHERE code = ?', (code_text,))
     redeem_code = cursor.fetchone()
     conn.close()
     return redeem_code
@@ -340,7 +348,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if success:
             coins = result
-            await update.message.reply_text(f"🎉 **Code Added Successfully!**\n\n💰 You earned **{coins} coins**!", parse_mode='Markdown')
+            # Get the redeem code details to show free code link
+            redeem_code_data = get_redeem_code_by_text(code)
+            if redeem_code_data and redeem_code_data[4]:  # free_code_link exists
+                free_code_link = redeem_code_data[4]
+                # Create inline keyboard for GET FREE CODE
+                keyboard = [
+                    [InlineKeyboardButton("📥 GET FREE CODE", url=free_code_link)]
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                
+                await update.message.reply_text(
+                    f"🎉 **Code Added Successfully!**\n\n💰 You earned **{coins} coins**!\n\nClick below to get more free codes:",
+                    reply_markup=reply_markup,
+                    parse_mode='Markdown'
+                )
+            else:
+                await update.message.reply_text(
+                    f"🎉 **Code Added Successfully!**\n\n💰 You earned **{coins} coins**!",
+                    parse_mode='Markdown'
+                )
         else:
             if result == "already_used":
                 await update.message.reply_text("❌ You have already used this code!")
@@ -361,15 +388,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
                 code_id = add_redeem_code(code, coins, free_code_link)
                 if code_id:
-                    # Broadcast to all users
+                    # Broadcast to all users with INLINE BUTTON
                     users = get_all_users()
                     message = (
                         f"🎉 **New Free Code Available!** 🎉\n\n"
                         f"🔑 **Code:** `{code}`\n"
                         f"💰 **Reward:** {coins} coins\n\n"
-                        f"📥 **Get Free Code:** {free_code_link}\n\n"
                         f"⚡ **Use code:** `{code}`"
                     )
+                    
+                    # Create inline keyboard button
+                    keyboard = [
+                        [InlineKeyboardButton("📥 GET FREE CODE", url=free_code_link)]
+                    ]
+                    reply_markup = InlineKeyboardMarkup(keyboard)
                     
                     success_count = 0
                     for user in users:
@@ -377,6 +409,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                             await context.bot.send_message(
                                 chat_id=user[0], 
                                 text=message,
+                                reply_markup=reply_markup,
                                 parse_mode='Markdown'
                             )
                             success_count += 1
@@ -386,7 +419,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     
                     await update.message.reply_text(
                         f"✅ **Code Added Successfully!**\n\n"
-                        f"📢 Notified {success_count} users!",
+                        f"📢 Notified {success_count} users!\n"
+                        f"🔗 Link: {free_code_link}",
                         parse_mode='Markdown'
                     )
                 else:
